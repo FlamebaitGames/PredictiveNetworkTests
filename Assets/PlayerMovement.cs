@@ -18,6 +18,6 @@ public class PlayerMovement : MonoBehaviour
 		{
 			rigidbody.AddForce(-rigidbody.position, ForceMode.Acceleration);
 		}
-		gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
+		//gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
 	}
 }
