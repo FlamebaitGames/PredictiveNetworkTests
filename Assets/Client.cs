@@ -7,17 +7,14 @@ public class Client : MonoBehaviour
 {
 	public Server server;
 
+	private int frame;
+
 
 	private List<PlayerFrame> frameBacklog = new List<PlayerFrame>();
 	private struct FrameUpdate
 	{
 		public int frame;
 		public PlayerState[] states;
-	}
-
-	public void ServerUpdate(PlayerFrame frame)
-	{
-		frameBacklog.Add(frame);
 	}
 	public void ServerUpdate(IEnumerable<PlayerFrame> frame)
 	{
@@ -49,7 +46,8 @@ public class Client : MonoBehaviour
 		gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
 		foreach(var ent in list)
 		{
-			server.ClientInputUpdate(ent.GetFrameInput());
+			server.ClientInputUpdate(ent.GetFrameInput(), frame);
 		}
+		frame++;
 	}
 }

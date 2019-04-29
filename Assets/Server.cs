@@ -12,8 +12,10 @@ public class Server : MonoBehaviour
 	private Camera playerCamera;
 	private int[] layers;
 	private int nClients;
-
+	
 	private List<PlayerInput> inputBacklog = new List<PlayerInput>();
+	private int frame = 0;
+
 	private List<Client> clients = new List<Client>();
 	private Scene[] scenes;
 	private void Awake()
@@ -41,6 +43,11 @@ public class Server : MonoBehaviour
 			{
 				comp.SimulateOwner();
 				if (comp.isController) comp.SimulateController();
+				else if(inputBacklog.Any(p => p.entityId == comp.id))
+				{
+					var inp = inputBacklog.First(p => p.entityId == comp.id);
+					comp.SetInput(inp);
+				}
 				gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
 				list.Add(new PlayerFrame
 				{
@@ -49,6 +56,8 @@ public class Server : MonoBehaviour
 				});
 			}
 		}
+		inputBacklog.Clear();
+		frame++;
 		foreach(var client in clients)
 		{
 			foreach (var entFrame in list)
@@ -59,7 +68,7 @@ public class Server : MonoBehaviour
 		
 	}
 
-	public void ClientInputUpdate(PlayerInput input)
+	public void ClientInputUpdate(PlayerInput input, int frame)
 	{
 		inputBacklog.Add(input);
 	}
@@ -83,8 +92,8 @@ public class Server : MonoBehaviour
 		
 		for(int i = 0; i <= nClients; i++)
 		{
-			CreatePlayerForClient(nClients, i); // create player for new client
-			if (i != nClients) CreatePlayerForClient(i, nClients); // Create player remote
+			CreatePlayerForClient(nClients, i, i == nClients ? PlayerEntity.InputMode.Automated : PlayerEntity.InputMode.Set); // create player for new client
+			if (i != nClients) CreatePlayerForClient(i, nClients, PlayerEntity.InputMode.Set); // Create player remote
 		}
 		var camera = Instantiate(playerCamera);
 		SceneManager.MoveGameObjectToScene(camera.gameObject, scene);
@@ -94,7 +103,7 @@ public class Server : MonoBehaviour
 		nClients++;
 	}
 
-	private void CreatePlayerForClient(int clientId, int playerId)
+	private void CreatePlayerForClient(int clientId, int playerId, PlayerEntity.InputMode inputMode = PlayerEntity.InputMode.Automated)
 	{
 		var player = Instantiate(playerPrefab);
 		var scene = scenes[clientId];
@@ -102,6 +111,7 @@ public class Server : MonoBehaviour
 		player.layer = layers[clientId];
 		var ent = player.GetComponent<PlayerEntity>();
 		ent.id = playerId;
+		ent.inputMode = inputMode;
 		if (clientId == playerId) ent.isController = true;
 		
 	}

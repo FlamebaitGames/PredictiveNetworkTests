@@ -6,6 +6,19 @@ public class PlayerEntity : MonoBehaviour
 {
 	[SerializeField]
 	private new Rigidbody rigidbody;
+
+	public enum InputMode
+	{
+		Standard,
+		Alternate,
+		Automated,
+		Set
+	}
+	public void SetInput(PlayerInput input)
+	{
+		frameInput = input;
+	}
+	public InputMode inputMode = InputMode.Automated;
 	public bool isController;
 	public int id;
 	private void OnValidate()
@@ -34,8 +47,25 @@ public class PlayerEntity : MonoBehaviour
 	}
 	public void SimulateController()
 	{
-		frameInput = new PlayerInput { entityId = id, input = new Vector3(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")).normalized };
+		switch (inputMode)
+		{
+			case InputMode.Standard:
+				frameInput = new PlayerInput { entityId = id, input = new Vector3(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")).normalized };
+				break;
+			case InputMode.Alternate:
+				frameInput = new PlayerInput { entityId = id, input = new Vector3(Input.GetAxis("Horizontal2"), Input.GetAxis("Vertical2")).normalized };
+				break;
+			case InputMode.Automated:
+				frameInput = new PlayerInput { entityId = id, input = new Vector3(Mathf.Sin(Time.time), Mathf.Tan(Time.time)).normalized };
+				break;
+			case InputMode.Set:
+				break;
+		}
 		Step(frameInput);
+	}
+	public void SimulateWithInput(PlayerInput input)
+	{
+		Step(input);
 	}
 
 	public void ResetState(PlayerState state)
