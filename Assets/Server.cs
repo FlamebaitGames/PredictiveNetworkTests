@@ -111,12 +111,14 @@ public class Server : MonoBehaviour
 	private void CreatePlayerForClient(int clientId, int playerId, PlayerEntity.InputMode inputMode = PlayerEntity.InputMode.Automated)
 	{
 		var player = Instantiate(playerPrefab);
+		player.name = $"Player ({playerId})";
 		var scene = scenes[clientId];
 		SceneManager.MoveGameObjectToScene(player, scene);
 		player.layer = layers[clientId];
 		var ent = player.GetComponent<PlayerEntity>();
 		ent.id = playerId;
 		ent.inputMode = inputMode;
+		ent.textColor = new[] { Color.white, Color.red, Color.green, Color.blue, Color.cyan }[playerId];
 		if (clientId == playerId) ent.isController = true;
 		
 	}

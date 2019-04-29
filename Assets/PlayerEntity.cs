@@ -1,12 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerEntity : MonoBehaviour
 {
 	[SerializeField]
 	private new Rigidbody rigidbody;
-
+	public Color textColor = Color.white;
+	[SerializeField]
+	private GameObject ui;
 	public enum InputMode
 	{
 		Standard,
@@ -30,6 +33,34 @@ public class PlayerEntity : MonoBehaviour
 	{
 		return frameInput;
 	}
+
+	private void Start()
+	{
+		var rend = GetComponent<Renderer>();
+		var mat = rend.material = new Material(rend.sharedMaterial);
+		mat.color = textColor;
+		if (isController)
+		{
+			var canv = Instantiate(ui);
+			canv.layer = gameObject.layer;
+			UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(canv, gameObject.scene);
+			foreach(var o in gameObject.scene.GetRootGameObjects())
+			{
+				var cam = o.GetComponent<Camera>();
+				if (cam)
+				{
+					var c = canv.GetComponent<Canvas>();
+					c.renderMode = RenderMode.ScreenSpaceCamera;
+					c.worldCamera = cam;
+				}
+			}
+			var txt = canv.transform.Find("Text");
+			txt.gameObject.layer = gameObject.layer;
+			var t = txt.GetComponent<Text>();
+			t.color = textColor;
+			t.text = name;
+		}
+	}
 	public PlayerState GetFrameState()
 	{
 		return new PlayerState
@@ -45,6 +76,7 @@ public class PlayerEntity : MonoBehaviour
 	{
 		
 	}
+
 	public void SimulateController()
 	{
 		switch (inputMode)
