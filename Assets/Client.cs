@@ -1,10 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class Client : MonoBehaviour
 {
 	public Server server;
+
 
 	private List<PlayerFrame> frameBacklog = new List<PlayerFrame>();
 	private struct FrameUpdate
@@ -31,8 +33,18 @@ public class Client : MonoBehaviour
 			if (comp)
 			{
 				list.Add(comp);
-				if(comp.isController) comp.SimulateController();
 			}
+		}
+		foreach(var upd in from entity in list
+						   join state in frameBacklog on entity.id equals state.state.entityId
+						   select new { entity, state })
+		{
+			upd.entity.ResetState(upd.state.state);
+		}
+
+		foreach(var ent in list)
+		{
+			if (ent.isController) ent.SimulateController();
 		}
 		gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
 		foreach(var ent in list)

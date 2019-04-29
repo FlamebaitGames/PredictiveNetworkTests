@@ -14,7 +14,7 @@ public class Server : MonoBehaviour
 	private int nClients;
 
 	private List<PlayerInput> inputBacklog = new List<PlayerInput>();
-
+	private List<Client> clients = new List<Client>();
 	private Scene[] scenes;
 	private void Awake()
 	{
@@ -49,12 +49,11 @@ public class Server : MonoBehaviour
 				});
 			}
 		}
-		foreach(var scene in scenes)
+		foreach(var client in clients)
 		{
-			if (!scene.IsValid()) continue;
 			foreach (var entFrame in list)
 			{
-				scene.GetRootGameObjects().First(g => g.GetComponent<Client>()).GetComponent<Client>().ServerUpdate(list);
+				client.ServerUpdate(list);
 			}
 		}
 		
@@ -77,7 +76,9 @@ public class Server : MonoBehaviour
 		{
 			var client = new GameObject("Client");
 			SceneManager.MoveGameObjectToScene(client, scene);
-			client.AddComponent<Client>().server = this;
+			var c = client.AddComponent<Client>();
+			c.server = this;
+			clients.Add(c);
 		}
 		
 		for(int i = 0; i <= nClients; i++)

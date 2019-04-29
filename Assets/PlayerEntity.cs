@@ -38,6 +38,14 @@ public class PlayerEntity : MonoBehaviour
 		Step(frameInput);
 	}
 
+	public void ResetState(PlayerState state)
+	{
+		rigidbody.position = state.position;
+		rigidbody.rotation = state.rotation;
+		rigidbody.velocity = state.velocity;
+		rigidbody.angularVelocity = state.angularVelocity;
+	}
+
 	public void Step(PlayerInput input)
 	{
 		rigidbody.AddForce(input.input * 150f * Time.fixedDeltaTime);
