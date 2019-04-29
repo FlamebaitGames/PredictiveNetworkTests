@@ -16,7 +16,7 @@ public class PlayerEntity : MonoBehaviour
 	}
 	public void SetInput(PlayerInput input)
 	{
-		frameInput = input;
+		if(input.frame > frameInput.frame) frameInput = input;
 	}
 	public InputMode inputMode = InputMode.Automated;
 	public bool isController;

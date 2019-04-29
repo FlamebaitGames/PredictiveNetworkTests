@@ -62,20 +62,19 @@ public class Server : MonoBehaviour
 		frame++;
 		foreach(var client in clients)
 		{
-			foreach (var entFrame in list)
+			client.ServerUpdate(list.Select(ent => new PlayerFrame
 			{
-				client.ServerUpdate(list.Select(ent => new PlayerFrame
-				{
-					input = ent.GetFrameInput(),
-					state = ent.GetFrameState()
-				}));
-			}
+				frame = frame,
+				input = ent.GetFrameInput(),
+				state = ent.GetFrameState()
+			}).ToArray());
 		}
 		
 	}
 
 	public void ClientInputUpdate(PlayerInput input, int frame)
 	{
+		input.frame = frame;
 		inputBacklog.Add(input);
 	}
 

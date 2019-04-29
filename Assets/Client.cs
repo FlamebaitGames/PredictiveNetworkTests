@@ -6,7 +6,8 @@ using System.Linq;
 public class Client : MonoBehaviour
 {
 	public Server server;
-
+	[SerializeField]
+	private int delayMs;
 	private int frame;
 
 
@@ -16,8 +17,14 @@ public class Client : MonoBehaviour
 		public int frame;
 		public PlayerState[] states;
 	}
-	public void ServerUpdate(IEnumerable<PlayerFrame> frame)
+	public void ServerUpdate(PlayerFrame[] frame)
 	{
+		StartCoroutine(ReceiveUpdateDelayed(frame));
+	}
+
+	IEnumerator ReceiveUpdateDelayed(PlayerFrame[] frame)
+	{
+		yield return new WaitForSeconds(delayMs/1000f);
 		frameBacklog.AddRange(frame);
 	}
 
@@ -38,6 +45,7 @@ public class Client : MonoBehaviour
 		{
 			upd.entity.ResetState(upd.state.state);
 		}
+		frameBacklog.Clear();
 
 		foreach(var ent in list)
 		{
@@ -46,8 +54,14 @@ public class Client : MonoBehaviour
 		gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
 		foreach(var ent in list)
 		{
-			server.ClientInputUpdate(ent.GetFrameInput(), frame);
+			StartCoroutine(SendClientInputUpdateDelayed(ent.GetFrameInput(), frame));
 		}
 		frame++;
+	}
+
+	IEnumerator SendClientInputUpdateDelayed(PlayerInput input, int frame)
+	{
+		yield return new WaitForSeconds(delayMs/1000f);
+		server.ClientInputUpdate(input, frame);
 	}
 }

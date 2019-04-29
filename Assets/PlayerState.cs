@@ -4,6 +4,7 @@ using UnityEngine;
 
 public struct PlayerState
 {
+	public int frame;
 	public int entityId;
 	public Vector3 position;
 	public Quaternion rotation;
@@ -13,12 +14,14 @@ public struct PlayerState
 
 public struct PlayerInput
 {
+	public int frame;
 	public int entityId;
 	public Vector3 input;
 }
 
 public struct PlayerFrame
 {
+	public int frame;
 	public PlayerState state;
 	public PlayerInput input;
 }
