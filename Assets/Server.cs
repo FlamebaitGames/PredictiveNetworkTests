@@ -35,34 +35,40 @@ public class Server : MonoBehaviour
 
 	private void FixedUpdate()
 	{
-		var list = new List<PlayerFrame>();
+		var list = new List<PlayerEntity>();
 		foreach (var ent in gameObject.scene.GetRootGameObjects())
 		{
 			var comp = ent.GetComponent<PlayerEntity>();
 			if (comp)
 			{
-				comp.SimulateOwner();
-				if (comp.isController) comp.SimulateController();
-				else if(inputBacklog.Any(p => p.entityId == comp.id))
+				if (inputBacklog.Any(p => p.entityId == comp.id))
 				{
 					var inp = inputBacklog.First(p => p.entityId == comp.id);
 					comp.SetInput(inp);
 				}
-				gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
-				list.Add(new PlayerFrame
-				{
-					input = comp.GetFrameInput(),
-					state = comp.GetFrameState()
-				});
+				comp.SimulateOwner();
+				if (comp.isController) comp.SimulateController();
+				
+				list.Add(comp);
 			}
 		}
+
+		foreach(var ent in list)
+		{
+			ent.ExecuteCommand();
+		}
+		gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
 		inputBacklog.Clear();
 		frame++;
 		foreach(var client in clients)
 		{
 			foreach (var entFrame in list)
 			{
-				client.ServerUpdate(list);
+				client.ServerUpdate(list.Select(ent => new PlayerFrame
+				{
+					input = ent.GetFrameInput(),
+					state = ent.GetFrameState()
+				}));
 			}
 		}
 		

@@ -61,11 +61,11 @@ public class PlayerEntity : MonoBehaviour
 			case InputMode.Set:
 				break;
 		}
-		Step(frameInput);
+		//Step(frameInput);
 	}
-	public void SimulateWithInput(PlayerInput input)
+	public void ExecuteCommand()
 	{
-		Step(input);
+		Step(frameInput);
 	}
 
 	public void ResetState(PlayerState state)
