@@ -14,7 +14,7 @@ public class Server : MonoBehaviour
 	private int nClients;
 	
 	private List<PlayerInput> inputBacklog = new List<PlayerInput>();
-	private int frame = 0;
+	public int frame = 0;
 
 	private List<Client> clients = new List<Client>();
 	private Scene[] scenes;
@@ -47,7 +47,7 @@ public class Server : MonoBehaviour
 					comp.SetInput(inp);
 				}
 				comp.SimulateOwner();
-				if (comp.isController) comp.SimulateController();
+				if (comp.isController) comp.SimulateController(frame);
 				
 				list.Add(comp);
 			}
@@ -62,14 +62,37 @@ public class Server : MonoBehaviour
 		frame++;
 		foreach(var client in clients)
 		{
-			client.ServerUpdate(list.Select(ent => new PlayerFrame
-			{
-				frame = frame,
-				input = ent.GetFrameInput(),
-				state = ent.GetFrameState()
-			}).ToArray());
+			client.ServerUpdate(
+				(from ent in list
+				 let input = ent.GetFrameInput()
+				 let state = ent.GetFrameState()
+				 select new PlayerFrame
+				 {
+					 frame = frame,
+					 input = new PlayerInput
+					 {
+						 frame = frame,
+						 input = input.input,
+						 entityId = input.entityId
+					 },
+					 state = new PlayerState
+					 {
+						 frame = frame,
+						 position = state.position,
+						 rotation = state.rotation,
+						 velocity = state.velocity,
+						 angularVelocity = state.angularVelocity,
+						 entityId = state.entityId
+					}
+				})
+				.ToArray());
 		}
-		
+		//list.Select(ent => new PlayerFrame
+		//{
+		//	frame = frame,
+		//	input = ent.GetFrameInput(),
+		//	state = ent.GetFrameState()
+		//}
 	}
 
 	public void ClientInputUpdate(PlayerInput input, int frame)
@@ -92,6 +115,7 @@ public class Server : MonoBehaviour
 			SceneManager.MoveGameObjectToScene(client, scene);
 			var c = client.AddComponent<Client>();
 			c.server = this;
+			c.frame = frame;
 			clients.Add(c);
 		}
 		
@@ -118,6 +142,7 @@ public class Server : MonoBehaviour
 		var ent = player.GetComponent<PlayerEntity>();
 		ent.id = playerId;
 		ent.inputMode = inputMode;
+		ent.replayOnReset = clientId == playerId && clientId != 0;
 		ent.textColor = new[] { Color.white, Color.red, Color.green, Color.blue, Color.cyan }[playerId];
 		if (clientId == playerId) ent.isController = true;
 		

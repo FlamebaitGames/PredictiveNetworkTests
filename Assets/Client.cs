@@ -8,10 +8,11 @@ public class Client : MonoBehaviour
 	public Server server;
 	[SerializeField]
 	private int delayMs;
-	private int frame;
+	public int frame;
 	private int serverFrame;
 	private BucketList<PlayerFrame> frameBucket = new BucketList<PlayerFrame>();
 	private List<PlayerFrame> frameBacklog = new List<PlayerFrame>();
+	private List<PlayerInput> previousInput = new List<PlayerInput>();
 	private struct FrameUpdate
 	{
 		public int frame;
@@ -39,30 +40,32 @@ public class Client : MonoBehaviour
 				list.Add(comp);
 			}
 		}
-		foreach(var upd in from entity in list
-						   join state in frameBacklog on entity.id equals state.state.entityId
-						   select new { entity, state })
+		foreach (var upd in from entity in list
+							join state in frameBacklog on entity.id equals state.state.entityId
+							select new { entity, state })
 		{
+			//Debug.Log($"{Vector3.Distance(upd.state.state.position, upd.entity.rigidbody.position)}) < 1f");
 			if (upd.entity.isController &&
-				Vector3.Distance(upd.state.state.position, upd.entity.transform.position) < upd.state.state.velocity.magnitude * (delayMs/1000f)
+				(Vector3.Distance(upd.state.state.position, upd.entity.rigidbody.position) < 1f) //upd.state.state.velocity.magnitude * Time.fixedDeltaTime
 				 //&& Quaternion.Angle(upd.state.state.rotation, upd.entity.transform.rotation) < 1f
 				 ) continue;
 			upd.entity.ResetState(upd.state.state);
 		}
+
 		frameBacklog.Clear();
 
 		foreach(var ent in list)
 		{
 			if (ent.isController)
 			{
-				ent.SimulateController();
+				ent.SimulateController(frame);
 				ent.ExecuteCommand();
 			}
 		}
 		gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
 		foreach(var ent in list)
 		{
-			StartCoroutine(SendClientInputUpdateDelayed(ent.GetFrameInput(), frame));
+			if(ent.isController) StartCoroutine(SendClientInputUpdateDelayed(ent.GetFrameInput(), frame));
 		}
 		frame++;
 	}

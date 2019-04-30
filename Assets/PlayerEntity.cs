@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 public class PlayerEntity : MonoBehaviour
 {
-	[SerializeField]
-	private new Rigidbody rigidbody;
+	
+	public new Rigidbody rigidbody { get; private set; }
 	public Color textColor = Color.white;
 	[SerializeField]
 	private GameObject ui;
@@ -17,6 +17,10 @@ public class PlayerEntity : MonoBehaviour
 		Automated,
 		Set
 	}
+	private void Awake()
+	{
+		rigidbody = GetComponent<Rigidbody>();
+	}
 	public void SetInput(PlayerInput input)
 	{
 		if(input.frame > frameInput.frame) frameInput = input;
@@ -24,10 +28,9 @@ public class PlayerEntity : MonoBehaviour
 	public InputMode inputMode = InputMode.Automated;
 	public bool isController;
 	public int id;
-	private void OnValidate()
-	{
-		rigidbody = GetComponent<Rigidbody>();
-	}
+	public bool replayOnReset = false;
+	
+	private List<PlayerInput> previousInputs = new List<PlayerInput>();
 	private PlayerInput frameInput;
 	public PlayerInput GetFrameInput()
 	{
@@ -77,7 +80,7 @@ public class PlayerEntity : MonoBehaviour
 		
 	}
 
-	public void SimulateController()
+	public void SimulateController(int frame)
 	{
 		switch (inputMode)
 		{
@@ -93,6 +96,8 @@ public class PlayerEntity : MonoBehaviour
 			case InputMode.Set:
 				break;
 		}
+		frameInput.frame = frame;
+		if(replayOnReset) previousInputs.Add(frameInput);
 		//Step(frameInput);
 	}
 	public void ExecuteCommand()
@@ -106,6 +111,17 @@ public class PlayerEntity : MonoBehaviour
 		rigidbody.rotation = state.rotation;
 		rigidbody.velocity = state.velocity;
 		rigidbody.angularVelocity = state.angularVelocity;
+		previousInputs.RemoveAll(p => p.frame <= state.frame);
+		if(isController) Debug.Log($"{state.frame}: Resetting, replaying {previousInputs.Count} frames");
+		foreach(var i in previousInputs)
+		{
+			if (isController) Debug.Log($"Frame {i.frame}");
+			frameInput = i;
+			ExecuteCommand();
+			gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
+		}
+		//if (previousInputs.Count > 10) UnityEditor.EditorApplication.isPaused = true;
+		previousInputs.Clear();
 	}
 
 	public void Step(PlayerInput input)
