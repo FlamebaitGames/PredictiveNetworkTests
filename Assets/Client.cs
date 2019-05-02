@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
-
+[DefaultExecutionOrder(1)]
 public class Client : MonoBehaviour
 {
 	public Server server;
@@ -10,7 +10,7 @@ public class Client : MonoBehaviour
 	private int delayMs;
 	public int frame;
 	private int serverFrame;
-	private BucketList<PlayerFrame> frameBucket = new BucketList<PlayerFrame>();
+	//private BucketList frameBucket = new BucketList<PlayerFrame>();
 	private List<PlayerFrame> frameBacklog = new List<PlayerFrame>();
 	private List<PlayerInput> previousInput = new List<PlayerInput>();
 	private struct FrameUpdate

@@ -12,8 +12,8 @@ public class Server : MonoBehaviour
 	private Camera playerCamera;
 	private int[] layers;
 	private int nClients;
-	
 	private List<PlayerInput> inputBacklog = new List<PlayerInput>();
+	private BucketList bucketInput = new BucketList();
 	public int frame = 0;
 
 	private List<Client> clients = new List<Client>();
@@ -35,35 +35,68 @@ public class Server : MonoBehaviour
 
 	private void FixedUpdate()
 	{
-		var list = new List<PlayerEntity>();
-		foreach (var ent in gameObject.scene.GetRootGameObjects())
+		var entities = (from ent in gameObject.scene.GetRootGameObjects()
+						let comp = ent.GetComponent<PlayerEntity>()
+						where comp
+						select comp).ToArray();
+		bucketInput.CreateBucket(frame, entities.Select(e => e.GetFrameState()).ToArray());
+		int earliestRecievedFrame = frame;
+		foreach(var input in inputBacklog)
 		{
-			var comp = ent.GetComponent<PlayerEntity>();
-			if (comp)
+			if (!bucketInput.Exists(input.frame))
 			{
-				if (inputBacklog.Any(p => p.entityId == comp.id))
+				Debug.LogWarning($"Received bad input for frame {input.frame} (entityId: {input.entityId})");
+				continue;
+			}
+			bucketInput.Add(input, input.frame);
+			earliestRecievedFrame = Mathf.Min(input.frame, earliestRecievedFrame);
+		}
+		inputBacklog.Clear();
+		if(earliestRecievedFrame < frame)
+		{
+			Debug.Log($"Rewinding from frame: {earliestRecievedFrame}");
+			foreach(var ent in from e in entities
+							   join i in bucketInput.GetContext(earliestRecievedFrame) on e.id equals i.entityId
+							   select new { entity = e, state = i })
+			{
+				Debug.Log($"entityId: {ent.entity.id}, frame: {ent.state.frame}");
+				ent.entity.ResetState(ent.state);
+			}
+			for(int i = earliestRecievedFrame; i < frame; i++)
+			{
+				foreach (var ent in from e in entities
+									join inp in bucketInput.GetInputEnumerator(i) on e.id equals inp.entityId
+									select new { entity = e, input = inp })
 				{
-					var inp = inputBacklog.First(p => p.entityId == comp.id);
-					comp.SetInput(inp);
+					ent.entity.SetInput(ent.input);
+					ent.entity.ExecuteCommand();
 				}
-				comp.SimulateOwner();
-				if (comp.isController) comp.SimulateController(frame);
-				
-				list.Add(comp);
+				gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
 			}
 		}
 
-		foreach(var ent in list)
+		foreach (var ent in from e in entities
+							join inp in bucketInput.GetInputEnumerator(frame) on e.id equals inp.entityId
+							select new { entity = e, input = inp })
+		{
+			if (ent.entity.isController) continue;
+			ent.entity.SetInput(ent.input);
+		}
+		foreach (var ent in entities)
+		{
+			if (ent.isController) ent.SimulateController(frame);
+		}
+		foreach (var ent in entities)
 		{
 			ent.ExecuteCommand();
 		}
 		gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
-		inputBacklog.Clear();
+		bucketInput.Trim(p => p.context.Length == p.input.Count+1); // Clear completed buckets
 		frame++;
 		foreach(var client in clients)
 		{
 			client.ServerUpdate(
-				(from ent in list
+				(from ent in entities
 				 let input = ent.GetFrameInput()
 				 let state = ent.GetFrameState()
 				 select new PlayerFrame

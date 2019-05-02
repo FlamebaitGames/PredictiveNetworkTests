@@ -29,6 +29,9 @@ public class PlayerEntity : MonoBehaviour
 	public bool isController;
 	public int id;
 	public bool replayOnReset = false;
+
+	private Text text;
+	
 	
 	private List<PlayerInput> previousInputs = new List<PlayerInput>();
 	private PlayerInput frameInput;
@@ -59,9 +62,9 @@ public class PlayerEntity : MonoBehaviour
 			}
 			var txt = canv.transform.Find("Text");
 			txt.gameObject.layer = gameObject.layer;
-			var t = txt.GetComponent<Text>();
-			t.color = textColor;
-			t.text = name;
+			text = txt.GetComponent<Text>();
+			text.color = textColor;
+			text.text = name;
 		}
 	}
 	public PlayerState GetFrameState()
@@ -98,6 +101,8 @@ public class PlayerEntity : MonoBehaviour
 		}
 		frameInput.frame = frame;
 		if(replayOnReset) previousInputs.Add(frameInput);
+		if(text) text.text = $@"name: {name}
+frame: {frame}";
 		//Step(frameInput);
 	}
 	public void ExecuteCommand()
@@ -112,7 +117,7 @@ public class PlayerEntity : MonoBehaviour
 		rigidbody.velocity = state.velocity;
 		rigidbody.angularVelocity = state.angularVelocity;
 		previousInputs.RemoveAll(p => p.frame <= state.frame);
-		if(isController) Debug.Log($"{state.frame}: Resetting, replaying {previousInputs.Count} frames");
+		if(isController && previousInputs.Count > 0) Debug.Log($"{state.frame}: Resetting, replaying {previousInputs.Count} frames");
 		foreach(var i in previousInputs)
 		{
 			if (isController) Debug.Log($"Frame {i.frame}");
