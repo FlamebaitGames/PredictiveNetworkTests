@@ -6,8 +6,7 @@ using System.Linq;
 public class Client : MonoBehaviour
 {
 	public Server server;
-	[SerializeField]
-	private int delayMs;
+	public int delayMs;
 	public int frame;
 	private int serverFrame;
 	//private BucketList frameBucket = new BucketList<PlayerFrame>();

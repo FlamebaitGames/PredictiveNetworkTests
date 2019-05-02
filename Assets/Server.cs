@@ -15,7 +15,7 @@ public class Server : MonoBehaviour
 	private List<PlayerInput> inputBacklog = new List<PlayerInput>();
 	private BucketList bucketInput = new BucketList();
 	public int frame = 0;
-
+	private bool resetNext;
 	private List<Client> clients = new List<Client>();
 	private Scene[] scenes;
 	private void Awake()
@@ -31,17 +31,27 @@ public class Server : MonoBehaviour
 	private void Update()
 	{
 		if (Input.GetKeyDown(KeyCode.Return)) ClientJoin();
+		if (Input.GetKeyDown(KeyCode.R)) resetNext = true;
 	}
 
 	private void FixedUpdate()
 	{
+		Debug.Log($"Start Frame {frame}");
 		var entities = (from ent in gameObject.scene.GetRootGameObjects()
 						let comp = ent.GetComponent<PlayerEntity>()
 						where comp
 						select comp).ToArray();
 		bucketInput.CreateBucket(frame, entities.Select(e => e.GetFrameState()).ToArray());
 		int earliestRecievedFrame = frame;
-		foreach(var input in inputBacklog)
+		// SimulateController for all server controlled entities
+		foreach (var ent in entities)
+		{
+			if (!ent.isController) continue;
+			ent.SimulateController(frame);
+			inputBacklog.Add(ent.GetFrameInput());
+		}
+		// Determine if we have new information for previous frames
+		foreach (var input in inputBacklog)
 		{
 			if (!bucketInput.Exists(input.frame))
 			{
@@ -52,6 +62,12 @@ public class Server : MonoBehaviour
 			earliestRecievedFrame = Mathf.Min(input.frame, earliestRecievedFrame);
 		}
 		inputBacklog.Clear();
+		/*if (resetNext)
+		{
+			earliestRecievedFrame = bucketInput.GetBuckets().Min();
+			Debug.Log($"Reset Next {earliestRecievedFrame}");
+		}*/
+		// If new information for a frame has been found, playback from that frame to now
 		if(earliestRecievedFrame < frame)
 		{
 			Debug.Log($"Rewinding from frame: {earliestRecievedFrame}");
@@ -59,40 +75,46 @@ public class Server : MonoBehaviour
 							   join i in bucketInput.GetContext(earliestRecievedFrame) on e.id equals i.entityId
 							   select new { entity = e, state = i })
 			{
-				Debug.Log($"entityId: {ent.entity.id}, frame: {ent.state.frame}");
+				//Debug.Log($"entityId: {ent.entity.id}, frame: {ent.state.frame}");
 				ent.entity.ResetState(ent.state);
 			}
 			for(int i = earliestRecievedFrame; i < frame; i++)
 			{
+				var entitititit = default(PlayerEntity);
 				foreach (var ent in from e in entities
 									join inp in bucketInput.GetInputEnumerator(i) on e.id equals inp.entityId
 									select new { entity = e, input = inp })
 				{
-					ent.entity.SetInput(ent.input);
+					if (ent.entity.id == 1) (entitititit= ent.entity).Mark();
+					//Debug.Log($"Set Input {ent.input.frame}");
+					ent.entity.SetInput(ent.input, true);
 					ent.entity.ExecuteCommand();
 				}
 				gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
+				bucketInput.OverrideContext(i, entities.Select(e => e.GetFrameState()).ToArray());
+				if (entitititit) entitititit.Draw();
 			}
 		}
 
+		// Set the input for the present frame
 		foreach (var ent in from e in entities
 							join inp in bucketInput.GetInputEnumerator(frame) on e.id equals inp.entityId
 							select new { entity = e, input = inp })
 		{
-			if (ent.entity.isController) continue;
-			ent.entity.SetInput(ent.input);
+			ent.entity.SetInput(ent.input, true);
 		}
-		foreach (var ent in entities)
-		{
-			if (ent.isController) ent.SimulateController(frame);
-		}
+
+		// Simulate the present frame
 		foreach (var ent in entities)
 		{
 			ent.ExecuteCommand();
 		}
 		gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
-		bucketInput.Trim(p => p.context.Length == p.input.Count+1); // Clear completed buckets
-		frame++;
+
+		// Clear completed buckets
+		bucketInput.Trim(p => p.context.Length == p.input.Count);// || resetNext
+		resetNext = false;
+		// Send updated info to clients
 		foreach(var client in clients)
 		{
 			client.ServerUpdate(
@@ -120,6 +142,7 @@ public class Server : MonoBehaviour
 				})
 				.ToArray());
 		}
+		frame++;
 		//list.Select(ent => new PlayerFrame
 		//{
 		//	frame = frame,
@@ -149,6 +172,7 @@ public class Server : MonoBehaviour
 			var c = client.AddComponent<Client>();
 			c.server = this;
 			c.frame = frame;
+			c.delayMs = 500;
 			clients.Add(c);
 		}
 		

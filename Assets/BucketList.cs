@@ -58,10 +58,33 @@ public class BucketList
 		return collection.ContainsKey(bucket);
 	}
 
+	public void OverrideContext(int bucket, PlayerState[] context)
+	{
+		if (!collection.ContainsKey(bucket)) throw new System.InvalidOperationException("Bucket doesn't exist");
+		var b = collection[bucket];
+		b.context = (from s in b.context
+					 join c in context on s.entityId equals c.entityId
+					 select new PlayerState
+					 {
+						 entityId = s.entityId,
+						 frame = s.frame,
+						 position = c.position,
+						 rotation = c.rotation,
+						 velocity = c.velocity,
+						 angularVelocity = c.angularVelocity
+					 }).ToArray();
+		collection[bucket] = b;
+	}
+
 	public PlayerState[] GetContext(int bucket)
 	{
 		if (!collection.ContainsKey(bucket)) throw new System.InvalidOperationException("Bucket doesn't exist");
 		return collection[bucket].context;
+	}
+
+	public IEnumerable<int> GetBuckets()
+	{
+		return collection.Keys;
 	}
 
 	public IEnumerable<PlayerInput> GetInputEnumerator(int bucket)

@@ -21,9 +21,9 @@ public class PlayerEntity : MonoBehaviour
 	{
 		rigidbody = GetComponent<Rigidbody>();
 	}
-	public void SetInput(PlayerInput input)
+	public void SetInput(PlayerInput input, bool force = false)
 	{
-		if(input.frame > frameInput.frame) frameInput = input;
+		if(force || input.frame > frameInput.frame) frameInput = input;
 	}
 	public InputMode inputMode = InputMode.Automated;
 	public bool isController;
@@ -100,7 +100,7 @@ public class PlayerEntity : MonoBehaviour
 				break;
 		}
 		frameInput.frame = frame;
-		if(replayOnReset) previousInputs.Add(frameInput);
+		//if(replayOnReset) previousInputs.Add(frameInput);
 		if(text) text.text = $@"name: {name}
 frame: {frame}";
 		//Step(frameInput);
@@ -109,24 +109,36 @@ frame: {frame}";
 	{
 		Step(frameInput);
 	}
+	private Vector3 p;
+	public void Mark()
+	{
+		p = rigidbody.position;
+	}
+
+	public void Draw()
+	{
+		Debug.DrawLine(p, rigidbody.position, Color.red, 2f);
+	}
+	
 
 	public void ResetState(PlayerState state)
 	{
+		//Debug.Log("Reset State");
 		rigidbody.position = state.position;
 		rigidbody.rotation = state.rotation;
 		rigidbody.velocity = state.velocity;
 		rigidbody.angularVelocity = state.angularVelocity;
-		previousInputs.RemoveAll(p => p.frame <= state.frame);
-		if(isController && previousInputs.Count > 0) Debug.Log($"{state.frame}: Resetting, replaying {previousInputs.Count} frames");
-		foreach(var i in previousInputs)
-		{
-			if (isController) Debug.Log($"Frame {i.frame}");
-			frameInput = i;
-			ExecuteCommand();
-			gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
-		}
+		//previousInputs.RemoveAll(p => p.frame <= state.frame);
+		//if(isController && previousInputs.Count > 0) Debug.Log($"{state.frame}: Resetting, replaying {previousInputs.Count} frames");
+		//foreach(var i in previousInputs)
+		//{
+		//	if (isController) Debug.Log($"Frame {i.frame}");
+		//	frameInput = i;
+		//	ExecuteCommand();
+		//	gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
+		//}
 		//if (previousInputs.Count > 10) UnityEditor.EditorApplication.isPaused = true;
-		previousInputs.Clear();
+		//previousInputs.Clear();
 	}
 
 	public void Step(PlayerInput input)
