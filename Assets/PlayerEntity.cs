@@ -88,13 +88,13 @@ public class PlayerEntity : MonoBehaviour
 		switch (inputMode)
 		{
 			case InputMode.Standard:
-				frameInput = new PlayerInput { entityId = id, input = new Vector3(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")).normalized };
+				frameInput = new PlayerInput { isValid = true, entityId = id, input = new Vector3(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")).normalized };
 				break;
 			case InputMode.Alternate:
-				frameInput = new PlayerInput { entityId = id, input = new Vector3(Input.GetAxis("Horizontal2"), Input.GetAxis("Vertical2")).normalized };
+				frameInput = new PlayerInput { isValid = true, entityId = id, input = new Vector3(Input.GetAxis("Horizontal2"), Input.GetAxis("Vertical2")).normalized };
 				break;
 			case InputMode.Automated:
-				frameInput = new PlayerInput { entityId = id, input = new Vector3(Mathf.Sin(Time.time), Mathf.Tan(Time.time)).normalized };
+				frameInput = new PlayerInput { isValid = true, entityId = id, input = new Vector3(Mathf.Sin(Time.time), Mathf.Tan(Time.time)).normalized };
 				break;
 			case InputMode.Set:
 				break;

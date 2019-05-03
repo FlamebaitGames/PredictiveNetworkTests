@@ -14,6 +14,7 @@ public struct PlayerState
 
 public struct PlayerInput
 {
+	public bool isValid;
 	public int frame;
 	public int entityId;
 	public Vector3 input;

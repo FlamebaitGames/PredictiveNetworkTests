@@ -58,6 +58,11 @@ public class BucketList
 		return collection.ContainsKey(bucket);
 	}
 
+	public bool Exists(int bucket, int entityId)
+	{
+		return collection.ContainsKey(bucket) && collection[bucket].input.Any(c => c.entityId == entityId);
+	}
+
 	public void OverrideContext(int bucket, PlayerState[] context)
 	{
 		if (!collection.ContainsKey(bucket)) throw new System.InvalidOperationException("Bucket doesn't exist");

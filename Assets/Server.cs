@@ -30,6 +30,7 @@ public class Server : MonoBehaviour
 
 	private void Update()
 	{
+		Debug.Log(Input.GetAxis("Mouse X"));
 		if (Input.GetKeyDown(KeyCode.Return)) ClientJoin();
 		if (Input.GetKeyDown(KeyCode.R)) resetNext = true;
 	}
@@ -62,11 +63,11 @@ public class Server : MonoBehaviour
 			earliestRecievedFrame = Mathf.Min(input.frame, earliestRecievedFrame);
 		}
 		inputBacklog.Clear();
-		/*if (resetNext)
+		if (resetNext)
 		{
 			earliestRecievedFrame = bucketInput.GetBuckets().Min();
 			Debug.Log($"Reset Next {earliestRecievedFrame}");
-		}*/
+		}
 		// If new information for a frame has been found, playback from that frame to now
 		if(earliestRecievedFrame < frame)
 		{
@@ -75,19 +76,21 @@ public class Server : MonoBehaviour
 							   join i in bucketInput.GetContext(earliestRecievedFrame) on e.id equals i.entityId
 							   select new { entity = e, state = i })
 			{
-				//Debug.Log($"entityId: {ent.entity.id}, frame: {ent.state.frame}");
+				Debug.Log($"reset entityId: {ent.entity.id} to frame: {ent.state.frame}");
 				ent.entity.ResetState(ent.state);
 			}
-			for(int i = earliestRecievedFrame; i < frame; i++)
+			for(int i = earliestRecievedFrame+1; i < frame; i++)
 			{
 				var entitititit = default(PlayerEntity);
 				foreach (var ent in from e in entities
-									join inp in bucketInput.GetInputEnumerator(i) on e.id equals inp.entityId
-									select new { entity = e, input = inp })
+									join inp in bucketInput.GetInputEnumerator(i) on e.id equals inp.entityId into grp
+									from g in grp.DefaultIfEmpty()
+									select new { entity = e, input = g })
 				{
+					Debug.Log($"frame: {ent.input.frame}, entityId: {ent.entity.id}");
 					if (ent.entity.id == 1) (entitititit= ent.entity).Mark();
 					//Debug.Log($"Set Input {ent.input.frame}");
-					ent.entity.SetInput(ent.input, true);
+					if(ent.input.isValid) ent.entity.SetInput(ent.input, true);
 					ent.entity.ExecuteCommand();
 				}
 				gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
@@ -112,7 +115,7 @@ public class Server : MonoBehaviour
 		gameObject.scene.GetPhysicsScene().Simulate(Time.fixedDeltaTime);
 
 		// Clear completed buckets
-		bucketInput.Trim(p => p.context.Length == p.input.Count);// || resetNext
+		bucketInput.Trim(p => p.context.Length == p.input.Count);// || 
 		resetNext = false;
 		// Send updated info to clients
 		foreach(var client in clients)
@@ -126,6 +129,7 @@ public class Server : MonoBehaviour
 					 frame = frame,
 					 input = new PlayerInput
 					 {
+						 isValid = true,
 						 frame = frame,
 						 input = input.input,
 						 entityId = input.entityId
